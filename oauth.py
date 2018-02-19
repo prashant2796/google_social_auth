@@ -19,9 +19,12 @@ from config import (CLIENT_ID,
 					ACCESS_TOKEN_URL,
 					API_RESOURCE_URL,
 					SCOPE_URL)
-from flask import Flask, abort, request
+from flask import Flask, request
 import requests
 import datetime
+import logging
+
+logging.basicConfig(filename='oauth.log',level=logging.ERROR)
 
 app = Flask(__name__)
 @app.route('/')
@@ -57,8 +60,8 @@ def get_authorization_url():
 					  "access_type":'offline',
    					  "include_granted_scopes":'true'				  
 					 }
-	auth_url=requests.get(AUTHORIZE_URL,params=auth_parameters) 
-	#makes a get request to authorization url with the parameters mentioned in the auth_parameters dictionary.
+	auth_url=requests.get(AUTHORIZE_URL,params=auth_parameters) 		#makes a get request to authorization url with the parameters mentioned in the auth_parameters dictionary.
+	
 
 	return auth_url.url   #the .url method returns the url with parameters appended to it.
 
@@ -70,13 +73,18 @@ def google_call_back():
 	It returns the final user data which is defined in scope parameter.
 
 	"""
-	error = request.args.get('error', '')   #gets the error specified in the url if any.  
-	if error:
-	    return "Error: " + error        #returns the error if there is one.
+	# error = request.args.get('error', '')                             #gets the error specified in the url if any.  
+	# if error:
+	# 	return permission_denied(error)                                                            #returns the error if there is one.
 
-	auth_code = request.args.get('code')  #it gets the authorization code from the url 
-	access_token = get_access_token(auth_code) #takes in access token returned my the function
-	return "your google info is:%s" % get_user_info(access_token)
+	error = request.args.get('error', '') 
+	if error:
+		logging.error('Error occurred ' + error)			          #logging the error using log file
+		return "Error:Access_denied   %s" %homepage()
+
+	auth_code = request.args.get('code') 									#it gets the authorization code from the url 
+	access_token = get_access_token(auth_code)                     #takes in access token returned my the function
+	return "your google info is:%s" % get_user_info(access_token)                   
 
 def get_access_token(auth_code):
 	"""
@@ -126,11 +134,8 @@ def get_user_info(access_token):
 	my_user_info.update(Time_stamp)  #using update method to add timestamp to json 
 	return (my_user_info) 	                 #returns the user info in json provided by google
 
-# def get_time_stamp():
-# 	Timestamp='Timestamp: {:%Y-%b-%d %H:%M:%S}'.format(datetime.datetime.now())
-# 	return Timestamp
-
 
 
 if __name__ == '__main__':
     app.run(debug=True)
+
