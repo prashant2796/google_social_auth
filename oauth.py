@@ -1,16 +1,36 @@
 """
-Following is a python script for Oauth2 implementation of google.The same flow is applicable for any other oauth provider.
+Following is a python script for Oauth2 implementation of google.
+The same flow is applicable for any other oauth provider.
 
-Firstly, the user is redirected to authorization link which is google's sign in page where the user can sign in with his google account and then grant permission to your app to access their data.
+Firstly, the user is redirected to authorization link
+which is google's sign in page where the user can sign in
+with his google account and then grant permission 
+to your app to access their data.
 
-Then, the user is redirected back to redirected_url  with a authorization code appended in it.
+Then,the user is redirected back to redirected_url
+with a authorization code appended in it.
 
-This auth code is then send with a post request to authorization server to get back an access token.
+This auth code is then send with a post request 
+to authorization server to get back an access token.
 
-The access token then can be send to resource server to get back the user information.
+The access token then can be send to resource server
+to get back the user information.
 
 """
 
+
+
+from flask import Flask, request
+
+import requests
+
+import datetime
+
+import logging
+
+import pytz
+
+from pytz import timezone
 
 from config import (CLIENT_ID,
 					CLIENT_SECRET,
@@ -19,10 +39,6 @@ from config import (CLIENT_ID,
 					ACCESS_TOKEN_URL,
 					API_RESOURCE_URL,
 					SCOPE_URL)
-from flask import Flask, request
-import requests
-import datetime
-import logging
 
 logging.basicConfig(filename='oauth.log',level=logging.ERROR)
 
@@ -41,59 +57,70 @@ def homepage():
 def get_authorization_url():
 
 	"""
-	this function returns the authorization url
+	This function returns the authorization url.
 
-	it makes a get request to the authorization 
+	It makes a get request to the authorization 
 	url of google and  with the parameters
 	that are appended to it.
 
-	when a user click on this link,the person is redirected 
+	When a user click on this link,the person is redirected 
 	google sign in page where the user can login from his google
 	credentials and can authorize the app.
 
 	"""
 
-	auth_parameters= {"client_id":CLIENT_ID,
+	auth_parameters= {
+					  "client_id":CLIENT_ID,
 					  "redirect_uri":CALLBACK_URL,
 					  "scope":SCOPE_URL,	
   					  "response_type":"code",
 					  "access_type":'offline',
    					  "include_granted_scopes":'true'				  
 					 }
-	auth_url=requests.get(AUTHORIZE_URL,params=auth_parameters) 		#makes a get request to authorization url with the parameters mentioned in the auth_parameters dictionary.
+
+	# Makes a get request to authorization url with the parameter\
+	# mentioned in the auth_parameters dictionary.				 
+	auth_url =  requests.get(AUTHORIZE_URL,params=auth_parameters)
 	
 
-	return auth_url.url   #the .url method returns the url with parameters appended to it.
+	return auth_url.url  # the .url method returns the url with parameters appended to it.
 
-@app.route('/oauth2callback') #this line indicates that when /oauth2callback url is encountered which is our redirect url,the control is switched on to this function.
+# This line indicates that when /oauth2callback url is encountered 
+# which is our redirect url, the control is switched on to the following function.
+@app.route('/oauth2callback') 
+
+
 def google_call_back():
 	"""
-	The control is switched to this function when user is redirected after authorizing the client app.
+	The control is switched to this function when user is redirected
+    after authorizing the client app.
 
 	It returns the final user data which is defined in scope parameter.
 
-	"""
-	# error = request.args.get('error', '')                             #gets the error specified in the url if any.  
-	# if error:
-	# 	return permission_denied(error)                                                            #returns the error if there is one.
+	"""                                                           
 
-	error = request.args.get('error', '') 
+	error = request.args.get('error', '')  # It gets the error specified in the url if any.
 	if error:
-		logging.error('Error occurred ' + error)			          #logging the error using log file
-		return "Error:Access_denied   %s" %homepage()
+		logging.error('Error occurred ' + error)  # Logging the error using log file
 
-	auth_code = request.args.get('code') 									#it gets the authorization code from the url 
-	access_token = get_access_token(auth_code)                     #takes in access token returned my the function
+		# Returns back the user to homepage with printing error:access_denied
+		return "Error: Access_denied   %s" %homepage() 
+
+	# It gets the authorization code from the url 
+	auth_code = request.args.get('code') 	
+
+	# Takes in access token returned my the function	
+	access_token = get_access_token(auth_code) 
 	return "your google info is:%s" % get_user_info(access_token)                   
+
 
 def get_access_token(auth_code):
 	"""
-	this function makes a post request which exchanges authorization code for 
+	This function makes a post request which exchanges authorization code for 
 	access token and returns it.
 	
-	to get the access token you can either make a get or post request to access 
-	token url.
-	but in case of google, it allows only post request.
+	To get the access token you can either make a get or post request to access token url.
+	But in case of google, it allows only post request.
 
 	"""
 	access_token_parameters={
@@ -104,35 +131,44 @@ def get_access_token(auth_code):
 								"grant_type":"authorization_code"
 							}
 
-	
-	token_result=requests.post(ACCESS_TOKEN_URL,params=access_token_parameters) # a post request to get back the access token
-	access_token_result = token_result.json()    #stores the json form of the result 
-	return access_token_result["access_token"]   #returns only the access token
+	# Sending a post request to get back the access token
+	token_result = requests.post(ACCESS_TOKEN_URL,params=access_token_parameters) 
+
+	access_token_result = token_result.json()  # Stores the json form of the result 
+	return access_token_result["access_token"]  # Returns only the access token
 
 
 def get_user_info(access_token):
 	"""
-	this function makes api calls to google resource server
+	This function makes api calls to google resource server
 
-	it exchanges access token to get user_info
+	It exchanges access token to get user_info
 
 	"""
-	# Timestamp='Timestamp: {:%Y-%b-%d %H:%M:%S}'.format(datetime.datetime.now())
+	fmt = '%Y-%b-%d %H:%M:%S %Z%z' 
+	timezone = pytz.timezone('Asia/Calcutta')
 
+	# Localizes the current datetime with timezone of Asia/Calcutta
+	local_dt = timezone.localize(datetime.datetime.now())  
+	timezone_india = local_dt.strftime(fmt)
 	Time_stamp = {
-					"Timestamp":'{:%Y-%b-%d %H:%M:%S}'.format(datetime.datetime.now())
-	}
-	resource_parameters={
+					"Timestamp":timezone_india
+	             }
+
+	resource_parameters= {
 
 						"access_token":access_token,
 						"Content-Type":"application/json"
 
-					}
+					     }
 
-	user_info=requests.get(API_RESOURCE_URL, params=resource_parameters) #get request to resource server to get back the user informaton
-	my_user_info=user_info.json() 
-	my_user_info.update(Time_stamp)  #using update method to add timestamp to json 
-	return (my_user_info) 	                 #returns the user info in json provided by google
+	# Sending get request to resource server to get back the user informaton.
+	user_info = requests.get(API_RESOURCE_URL, params=resource_parameters) 
+	my_user_info = user_info.json() 
+
+	# Using update method to add timestamp to json respone from google.
+	my_user_info.update(Time_stamp)  
+	return (my_user_info) 	         # Returns the user info in json provided by google
 
 
 
