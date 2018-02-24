@@ -57,11 +57,17 @@ def homepage():
 def get_authorization_url():
 
 	"""
-	This function returns the authorization url.
+	This function returns the authorization url by appending 
+	following parameters to it.
+	
+	authentication_parameters= {
+								  "client_id":Your_client_id,
+								  "redirect_uri":www.yourwebsite.com/oauth2callback,
+								  "scope":"email",	
+			  					  "response_type":"code",
+								  "access_type":'offline',
+								}
 
-	It makes a get request to the authorization 
-	url of google and  with the parameters
-	that are appended to it.
 
 	When a user click on this link,the person is redirected 
 	google sign in page where the user can login from his google
@@ -75,7 +81,6 @@ def get_authorization_url():
 					  "scope":SCOPE_URL,	
   					  "response_type":"code",
 					  "access_type":'offline',
-   					  "include_granted_scopes":'true'				  
 					 }
 
 	# Makes a get request to authorization url with the parameter\
@@ -116,11 +121,16 @@ def google_call_back():
 
 def get_access_token(auth_code):
 	"""
-	This function makes a post request which exchanges authorization code for 
-	access token and returns it.
+	This function makes a post request which exchanges authorization code 
+	for access token and returns it.
 	
-	To get the access token you can either make a get or post request to access token url.
-	But in case of google, it allows only post request.
+	access_token_parameters={
+								"client_id":Your_client_id,
+								"client_secret":your_client_secret,
+								"redirect_uri":wwww.yourwebsite.com/oauth2callback,
+								"code":code,  
+								"grant_type":"authorization_code"
+							}
 
 	"""
 	access_token_parameters={
